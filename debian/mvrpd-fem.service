@@ -1,0 +1,15 @@
+[Unit]
+Description=MVRPd
+After=network.target
+
+[Service]
+EnvironmentFile=/etc/default/mvrpd-fem
+ExecStart=/usr/sbin/mvrpd $OPTIONS
+KillMode=process
+Restart=on-failure
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
+
+

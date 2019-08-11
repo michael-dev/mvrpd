@@ -1,0 +1,36 @@
+language: c
+compiler:
+  - gcc
+
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+    - secure: "mO3eRvklhSbvGU/xS+SgeBnBNofU0+iDS/d4sdXlB7JyAMrPo5nd3Ulq/CtYvEUx9m/fpcJmOIozrybkPoYHhYFqswBOe0jOlWJKt6LPw6DRCIfmjIKNCBRWslxe8PEciOj2+yjcV6e4dM0ZMW3PQ7KX/eOWvE0zv1umjGOYeq8X3v11bYAVUDsdn4GzMrgkFvP5T8rcuqsF4Egj72pydjF+JlEkasYrI8toN2R5GkPnCl5A+0rbptEYuONgidBnfg/u1K5EJk/PrUnsb3QFoYAH6DOVeWFmepGLr+cvdeUsIEZzkfusv8cyJViWh18BK+xkYPKeCfxrCJAz24T9vZoNzFYgLNs/nEg0L4CsoZdlPGKDvhwT2+cYFU0Vu+vTlLYfVXXAJyJ7OEvDybAywt6xQm+3gynZ0B3cqUyK8x4/HB5m4mKjChf1OmfWx424+tpOYHfU9SSn1+6s0Ncn7OLF0Iub1qB4Mn2gytpkgtpXwpzZHlUrQKFY5ohsA9NoJ19Oe52KBpkrtcTIud6+Fi9lAcT5cyIaWtbROvemlZU4r6NSxIA2ElLRUeFqRPpEiKV1LanWWjhirEenZbWO+O/5JgbjEGiLYO9JfDaE8lqrMUCYSbNTOeHEs/q6pIlduEjz0mIM8IBuMB0KCYb+1MqvgMCX6I2KfjbhphvMM6A="
+
+before_install:
+  - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+
+addons:
+  coverity_scan:
+    project:
+      name: "michael-dev/mvrpd"
+      description: "Linux bridge based MVRP daemon"
+    notification_email: michael-dev@fami-braun.de
+    #build_command_prepend: "<Your build preprocessing command here>"
+    build_command: "./autoinstall.sh"
+    branch_pattern: coverity_scan
+  apt:
+    update: true
+    packages:
+    - autotools-dev
+    - libnl-3-dev
+    - libnl-cli-3-dev
+    - libnl-genl-3-dev
+    - libnl-nf-3-dev
+    - libnl-route-3-dev
+
+script:
+  - ./autoinstall.sh
+
+dist: bionic 

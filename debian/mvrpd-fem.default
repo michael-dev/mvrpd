@@ -1,0 +1,1 @@
+OPTIONS=--bridge brvlan --uplinkif femap\* --ptpif femap\* --restrict-to-ep --epif brvlan --epif tinctap\* --verbose

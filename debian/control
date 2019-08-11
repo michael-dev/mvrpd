@@ -1,0 +1,15 @@
+Source: mvrpd-fem
+Section: unknown
+Priority: extra
+Maintainer: Michael Braun <michael-dev@fami-braun.de>
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, libnl-3-dev, libnl-cli-3-dev, libnl-genl-3-dev, libnl-nf-3-dev, libnl-route-3-dev
+Standards-Version: 3.9.3
+Homepage: https://github.com/michael-dev/mvrpd
+#Vcs-Git: git://git.debian.org/collab-maint/mvrpd-fem.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/mvrpd-fem.git;a=summary
+
+Package: mvrpd-fem
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>
