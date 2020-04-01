@@ -18,6 +18,9 @@
  *  (C) 2019, Michael Braun <michael-dev@fami-braun.de>
  */
 
+#ifndef MVRPD_DEBUG
+#define MVRPD_DEBUG
+
 #define DEBUG_ERROR       1
 #define DEBUG_GENERAL     2
 #define DEBUG_NFLOG       4
@@ -39,4 +42,6 @@ void edprint(const int level, const char* msg, const char* file, const int line,
 		edprint(level, syslogbuf, __FILE__, __LINE__, __PRETTY_FUNCTION__);\
 	};\
 };
+
+#endif
 

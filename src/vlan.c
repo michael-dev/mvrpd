@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 
 #define MIN(a,b) ((a < b) ? a : b)
 #define MAX(a,b) ((a > b) ? a : b)
@@ -52,7 +53,7 @@ struct vlan_arr {
 	uint8_t lastidx; // offset in meta array
 } __attribute__((packed));
 
-static inline uint16_t
+static inline uint8_t
 vlan_offset(struct vlan_arr *arr, uint16_t metaidx)
 {
 	return (metaidx < arr->nummeta) ? arr->meta[metaidx].offset : arr->numbitmap;
@@ -140,7 +141,7 @@ vlan_find_or_add_room(struct vlan_arr *arr, uint16_t vid)
 		return succ;
 
 	unsigned char merge = 0; // 1 for prev, 2 for succ
-	uint16_t extrabitmap = 0;
+	uint8_t extrabitmap = 0;
 
 	assert(vid < vlan_start_vid(arr, succ));
 	assert(succ == 0 || vid >= vlan_end_vid(arr, succ-1));
@@ -168,23 +169,25 @@ vlan_find_or_add_room(struct vlan_arr *arr, uint16_t vid)
 	eprintf(DEBUG_GENERAL, "arr %s(%p) nummeta=%hu metabitmap=%hu vid=%hu, idx=%hu vlan_offset=%hu vlan_start_vid=%hu vlan_end_vid=%hu, extrabitmap=%hu merge=%d",
 		arr->name, arr, arr->nummeta, arr->numbitmap, vid, succ, vlan_offset(arr, succ), vlan_start_vid(arr, succ), vlan_end_vid(arr, succ), extrabitmap, merge);
 
-	uint16_t startoffset = vlan_offset(arr, succ); // fetch before numbitmap is updated
+	uint8_t startoffset = vlan_offset(arr, succ); // fetch before numbitmap is updated
 	eprintf(DEBUG_GENERAL, "old: arr->bitmap=%p startoffset=%d e=%d numbitmap=%d", arr->bitmap, startoffset, extrabitmap, (int) arr->numbitmap);
 	assert(extrabitmap);
+	assert(arr->numbitmap <= UCHAR_MAX - extrabitmap);
+	assert(startoffset <= arr->numbitmap);
 
 	arr->bitmap = realloc(arr->bitmap, (arr->numbitmap + extrabitmap) * sizeof(*arr->bitmap));
 	arr->numbitmap += extrabitmap;
 	assert(arr->bitmap);
 
-	for (uint16_t i = succ; i < arr->nummeta; i++) {
+	for (uint8_t i = succ; i < arr->nummeta; i++) {
 		assert(arr->meta[i].offset >= startoffset);
 		arr->meta[i].offset += extrabitmap;
 	}
-	for (uint16_t i = arr->numbitmap - 1; i >= startoffset + extrabitmap; i--) {
+	for (uint8_t i = arr->numbitmap - 1; i >= startoffset + extrabitmap; i--) {
 //		eprintf(DEBUG_GENERAL, "arr->bitmap=%p i=%d i-e=%d numbitmap=%d", arr->bitmap, i, i-extrabitmap, (int) arr->numbitmap);
 		arr->bitmap[i] = arr->bitmap[i - extrabitmap];
 	}
-	for (uint16_t i = startoffset; i < startoffset + extrabitmap; i++) {
+	for (uint8_t i = startoffset; i < (uint8_t) (startoffset + extrabitmap); i++) {
 //		eprintf(DEBUG_GENERAL, "arr->bitmap=%p i=%d startoffset=%d e=%d numbitmap=%d", arr->bitmap, i, startoffset, extrabitmap, (int) arr->numbitmap);
 		arr->bitmap[i] = 0;
 	}
@@ -381,13 +384,15 @@ vlan_dump(struct vlan_arr *arr, char *buf, size_t buflen)
 		ptr += snprintf(ptr, tmp + sizeof(tmp) - ptr, "vlan %s(%p) numentries: %hu nummeta: %hu numbitmap: %hu\n",
 				arr->name, arr, arr->numentries, arr->nummeta, arr->numbitmap);
 
-		ptr += snprintf(ptr, tmp + sizeof(tmp) - ptr, "meta:\n");
-		for (uint16_t i = 0; i < arr->nummeta; i++) {
+		if (ptr < tmp + sizeof(tmp))
+			ptr += snprintf(ptr, tmp + sizeof(tmp) - ptr, "meta:\n");
+		for (uint16_t i = 0; i < arr->nummeta && ptr < tmp + sizeof(tmp); i++) {
 			ptr += snprintf(ptr, tmp + sizeof(tmp) - ptr, " * %02d: start=%hhu offset=%hhu // startvid=%hu endvid=%hu\n", i, arr->meta[i].start, arr->meta[i].offset, vlan_start_vid(arr, i), vlan_end_vid(arr, i));
 		}
 
-		ptr += snprintf(ptr, tmp + sizeof(tmp) - ptr, "bitmap:\n");
-		for (uint16_t i = 0; i < arr->numbitmap; i++) {
+		if (ptr < tmp + sizeof(tmp))
+			ptr += snprintf(ptr, tmp + sizeof(tmp) - ptr, "bitmap:\n");
+		for (uint16_t i = 0; i < arr->numbitmap && ptr < tmp + sizeof(tmp); i++) {
 			ptr += snprintf(ptr, tmp + sizeof(tmp) - ptr, " * %02d: %04hx\n", i, arr->bitmap[i]);
 		}
 

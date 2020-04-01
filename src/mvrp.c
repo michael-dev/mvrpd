@@ -66,8 +66,8 @@ enum mvrp_event {
 };
 
 struct mvrp_build_state {
-	int changes:1;
-	int notempty:1;
+	unsigned int changes:1;
+	unsigned int notempty:1;
 };
 
 static const char mvrp_addr[6] = { 0x01, 0x80, 0xc2, 0x00, 0x00, 0x21 };
@@ -208,7 +208,7 @@ mvrp_parse_vecattr(struct if_entry *port, const int attrtype, const int attrlen,
 		char buf[4096];
 		char *ptr = buf;
 
-		for (int i = 0; i < attrlen; i++)
+		for (int i = 0; i < attrlen && ptr < buf + sizeof(buf); i++)
 			ptr += snprintf(ptr, buf + sizeof(buf) - ptr, "%s%02hhx", (i > 0 ? ":" : ""), firstValue[i]);
 		ptr[0] = '\0';
 

@@ -18,6 +18,9 @@
  *  (C) 2019, Michael Braun <michael-dev@fami-braun.de>
  */
 
+#ifndef MVRPD_PORT
+#define MVRPD_PORT
+
 #include <net/if.h>
 #include <netinet/ether.h>
 #include <time.h>
@@ -44,7 +47,7 @@ struct if_entry
 	struct vlan_arr *vlan_declared_remote_leave;
 	struct vlan_arr *vlan_declared_remote_leave2;
 
-	int needSend:1; // indicates a leave message has been received and thus join should be sent
+	unsigned int needSend:1; // indicates a leave message has been received and thus join should be sent
 	time_t lastLeaveAll;
 	time_t lastLeaveTimer;
 	time_t lastSent;
@@ -63,3 +66,5 @@ void port_del(int ifidx);
 void port_vlan_changed();
 struct if_entry *port_get_by_ifidx(int ifidx);
 void for_each_port(void (*cb) (struct if_entry *port, void *ctx), void *ctx);
+
+#endif

@@ -17,6 +17,8 @@
  *
  *  (C) 2019, Michael Braun <michael-dev@fami-braun.de>
  */
+#ifndef MVRPD_EVENT
+#define MVRPD_EVENT
 
 #include <stdint.h>
 
@@ -31,4 +33,6 @@ void cb_del_handle(int h, void* ctx, handle_cb cb);
 void cb_add_signal(int s, signal_cb cb);
 
 void event_runloop();
+
+#endif
 

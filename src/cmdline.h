@@ -18,8 +18,13 @@
  *  (C) 2019, Michael Braun <michael-dev@fami-braun.de>
  */
 
+#ifndef MVRPD_CMDLINE
+#define MVRPD_CMDLINE
+
 #include <getopt.h>
 
 typedef void (*option_cb)(int c, void *arg);
 void add_option_cb(struct option opt, option_cb cb, void *cbarg);
 void parse_cmdline();
+
+#endif

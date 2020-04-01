@@ -17,6 +17,8 @@
  *
  *  (C) 2019, Michael Braun <michael-dev@fami-braun.de>
  */
+#ifndef MVRPD_MVRP
+#define MVRPD_MVRP
 
 struct ether_socket;
 struct if_entry;
@@ -24,4 +26,6 @@ struct if_entry;
 struct ether_socket *mvrp_listen(int if_index, const char *if_name, const char *if_mac);
 void mvrp_close(struct ether_socket *sock);
 void mvrp_send(struct if_entry *port);
+
+#endif
 
