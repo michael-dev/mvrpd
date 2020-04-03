@@ -6,6 +6,8 @@ Coverity Scan:
 
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/michael-dev/mvrpd.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/michael-dev/mvrpd/alerts/)
 
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/michael-dev/mvrpd.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/michael-dev/mvrpd/context:cpp)
+
 mvrpd
 =====
 
