@@ -34,5 +34,6 @@ struct vlan_arr *vlan_clone(struct vlan_arr *arr, const char *name);
 void vlan_free(struct vlan_arr *arr);
 int vlan_next(struct vlan_arr *arr, int *iterator, uint16_t *vid); // 1 on end, 0 if found
 size_t vlan_dump(struct vlan_arr *arr, char *buf, size_t buflen);
+int vlan_compare(struct vlan_arr *arr1, struct vlan_arr *arr2); // 1 in different, 0 on equal
 
 #endif
