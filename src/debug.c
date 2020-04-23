@@ -42,7 +42,7 @@ void edprint(const int level, const char* msg, const char* file, const int line,
 	const char *bname;
 	if (level & debug) {
 		bname = (strrchr(file, '/') ? strrchr(file, '/') + 1 : file);
-		snprintf(syslogbuf, sizeof(syslogbuf), "%s (%s:%d):\t%s", fnc, bname, line, msg);
+		snprintf(syslogbuf, sizeof(syslogbuf), "%s (%s:%d): %s", fnc, bname, line, msg);
 #ifdef DEBUG
 		openlog ("mvrpd", LOG_CONS | LOG_PID | LOG_NDELAY | LOG_PERROR, LOG_DAEMON);
 		syslog(LOG_INFO, syslogbuf, strlen(syslogbuf));
