@@ -1,3 +1,9 @@
+mvrpd-fem (0.6) unstable; urgency=medium
+
+  * debug more in verbose
+
+ -- Michael Braun <michael-dev@fami-braun.de>  Thu, 23 Apr 2020 22:33:22 +0200
+
 mvrpd-fem (0.5) unstable; urgency=medium
 
   * Initial Release.

@@ -56,6 +56,11 @@ struct if_entry
 	struct vlan_arr *vlan_declared_local;
 	struct vlan_arr *vlan_declared_local_lastSend;
 
+	/* debugging */
+	struct vlan_arr *vlan_to_add_last_print;
+	struct vlan_arr *vlan_state_last_print;
+
+	/* else */
 	struct ether_socket *sock;
 	struct if_entry *next;
 };

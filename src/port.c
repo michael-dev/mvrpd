@@ -89,6 +89,9 @@ add_if(const int ifidx)
 	entry->ifidx = ifidx;
 	entry->next = ifHead;
 	entry->vlan_registered = vlan_alloc("port->vr");
+	entry->vlan_to_add_last_print = vlan_alloc("port->vtalp");
+	entry->vlan_state_last_print = vlan_alloc("port->vslp");
+
 	ifHead = entry;
 	return entry;
 }
@@ -313,6 +316,14 @@ port_recompute_timer(void *ctx)
 			int trunc = (sizeof(vlans) == vlan_dump(vlan_to_add, vlans, sizeof(vlans)));
 			eprintf(DEBUG_PORT,  "ifidx: %d name: %s type:%d ptp:%d vlans-to-add: %s%s", entry->ifidx, entry->ifname, entry->type,entry->ptp, vlans, (trunc ? "...":""));
 		}
+		if (isdebug(DEBUG_VERBOSE) &&
+		    vlan_compare(entry->vlan_to_add_last_print, vlan_to_add)) {
+			char vlans[4096];
+			int trunc = (sizeof(vlans) == vlan_dump(vlan_to_add, vlans, sizeof(vlans)));
+			eprintf(DEBUG_VERBOSE,  "ifidx: %d name: %s type:%d ptp:%d vlans-to-add: %s%s", entry->ifidx, entry->ifname, entry->type,entry->ptp, vlans, (trunc ? "...":""));
+			vlan_free(entry->vlan_to_add_last_print);
+			entry->vlan_to_add_last_print = vlan_clone(vlan_to_add,"port->vtalp");
+		}
 
 		int it = 0;
 		uint16_t vid = 0;
@@ -352,6 +363,15 @@ port_recompute_timer(void *ctx)
 
 		port_configure_br_vlan(entry, vlan_wanted1);
 		mvrp_send(entry);
+
+		if (isdebug(DEBUG_VERBOSE) &&
+		    vlan_compare(entry->vlan_state_last_print, entry->vlan_state)) {
+			char vlans[4096];
+			int trunc = (sizeof(vlans) == vlan_dump(entry->vlan_state, vlans, sizeof(vlans)));
+			eprintf(DEBUG_VERBOSE,  "ifidx: %d name: %s type:%d ptp:%d vlans-state: %s%s", entry->ifidx, entry->ifname, entry->type,entry->ptp, vlans, (trunc ? "...":""));
+			vlan_free(entry->vlan_state_last_print);
+			entry->vlan_state_last_print = vlan_clone(entry->vlan_state,"port->vslp");
+		}
 	}
 
 	vlan_free(vlan_wanted0);
@@ -378,6 +398,10 @@ void port_del(int ifidx)
 	if (entry->type == 1)
 		/* uplink aka mvrp */
 		deconf_uplink(entry);
+
+	vlan_free(entry->vlan_to_add_last_print);
+	vlan_free(entry->vlan_state_last_print);
+
 	vlan_free(entry->vlan_registered);
 	free(entry);
 }
