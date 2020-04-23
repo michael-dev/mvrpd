@@ -302,28 +302,37 @@ port_recompute_timer(void *ctx)
 
 	for (entry = ifHead; entry; entry = entry->next) {
 		struct vlan_arr *vlan_to_add;
-		if (entry->type == 1 && !restrictToEp)
+		struct vlan_arr *vlan_to_print;
+		if (entry->type == 1 && !restrictToEp) {
 			// uplink
 			vlan_to_add = entry->vlan_declared_remote;
-		else if (entry->type == 2)
+			vlan_to_print = vlan_to_add;
+		} else if (entry->type == 2) {
 			// ep
 			vlan_to_add = entry->vlan_registered;
-		else
-			continue;
+			vlan_to_print = vlan_to_add;
+		} else {
+			// continue;
+			vlan_to_add = NULL;
+			vlan_to_print = entry->vlan_declared_remote;
+		}
 
-		if (isdebug(DEBUG_PORT)) {
+		if (isdebug(DEBUG_PORT) && vlan_to_add) {
 			char vlans[4096];
 			int trunc = (sizeof(vlans) == vlan_dump(vlan_to_add, vlans, sizeof(vlans)));
 			eprintf(DEBUG_PORT,  "ifidx: %d name: %s type:%d ptp:%d vlans-to-add: %s%s", entry->ifidx, entry->ifname, entry->type,entry->ptp, vlans, (trunc ? "...":""));
 		}
 		if (isdebug(DEBUG_VERBOSE) &&
-		    vlan_compare(entry->vlan_to_add_last_print, vlan_to_add)) {
+		    vlan_compare(entry->vlan_to_add_last_print, vlan_to_print)) {
 			char vlans[4096];
-			int trunc = (sizeof(vlans) == vlan_dump(vlan_to_add, vlans, sizeof(vlans)));
-			eprintf(DEBUG_VERBOSE,  "ifidx: %d name: %s type:%d ptp:%d vlans-to-add: %s%s", entry->ifidx, entry->ifname, entry->type,entry->ptp, vlans, (trunc ? "...":""));
+			int trunc = (sizeof(vlans) == vlan_dump(vlan_to_print, vlans, sizeof(vlans)));
+			eprintf(DEBUG_VERBOSE,  "ifidx: %d name: %s type:%d ptp:%d vlans-to-%s: %s%s", entry->ifidx, entry->ifname, entry->type,entry->ptp, (vlan_to_add ? "add":"print"), vlans, (trunc ? "...":""));
 			vlan_free(entry->vlan_to_add_last_print);
-			entry->vlan_to_add_last_print = vlan_clone(vlan_to_add,"port->vtalp");
+			entry->vlan_to_add_last_print = vlan_clone(vlan_to_print,"port->vtalp");
 		}
+
+		if (!vlan_to_add)
+			continue;
 
 		int it = 0;
 		uint16_t vid = 0;
