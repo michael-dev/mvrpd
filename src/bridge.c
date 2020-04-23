@@ -196,7 +196,7 @@ obj_input_newlink(struct rtnl_link *link, struct nl_msg *msg, int fromDump)
 		int remaining;
 		struct nlattr *attr;
 
-    	    nla_for_each_nested(attr, a_af_spec, remaining) {
+		nla_for_each_nested(attr, a_af_spec, remaining) {
 			eprintf(DEBUG_BRIDGE, "got anoter IFLA_AF_SPEC entry type %d len %d, expecting type %d and len %zd", (int) nla_type(attr), (int) nla_len(attr), (int) IFLA_BRIDGE_VLAN_INFO, sizeof(struct bridge_vlan_info));
 			if (nla_type(attr) != IFLA_BRIDGE_VLAN_INFO)
 				continue;
