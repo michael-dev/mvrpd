@@ -208,7 +208,7 @@ static void
 port_configure_br_vlan(struct if_entry *entry, struct vlan_arr *vlan_register) {
 	int it = 0, hasadd = 0, hasdel = 0;
 	uint16_t vid = 0;
-	struct vlan_arr *vlan_del = vlan_alloc("vlan_del");
+	struct vlan_arr *vlan_del = vlan_alloc("vlan-del");
 	struct vlan_arr *vlan_add = vlan_alloc("vlan-add");
 
 	while (vlan_next(vlan_register, &it, &vid) == 0) {
