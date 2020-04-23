@@ -52,6 +52,19 @@ cmdline
 
 Where pattern is matched using fnmatch, e.g. eth\* would match eth0, eth1, etc.
 
+extra cmdline
+-------------
+
+  * --bridge-dump-netlink: flag to force a bridge dump using netlink to receive full information
+  * --debug
+  * --debug-all
+  * --debug-bridge
+  * --debug-ether
+  * --debug-mvrp
+  * --debug-nflog
+  * --debug-port
+  * --nflog-group: nflog group for MVRP snooping
+  * --verbose
 
 test-setup
 ----------
