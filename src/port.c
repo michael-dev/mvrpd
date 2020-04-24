@@ -91,6 +91,7 @@ add_if(const int ifidx)
 	entry->vlan_registered = vlan_alloc("port->vr");
 	entry->vlan_to_add_last_print = vlan_alloc("port->vtalp");
 	entry->vlan_state_last_print = vlan_alloc("port->vslp");
+	entry->vlan_declared_local_last_print = vlan_alloc("port->vdllp");
 
 	ifHead = entry;
 	return entry;
@@ -375,6 +376,14 @@ port_recompute_timer(void *ctx)
 		mvrp_send(entry);
 
 		if (isdebug(DEBUG_VERBOSE) &&
+		    vlan_compare(entry->vlan_declared_local_last_print, entry->vlan_declared_local)) {
+			char vlans[4096];
+			int trunc = (sizeof(vlans) == vlan_dump(entry->vlan_declared_local, vlans, sizeof(vlans)));
+			eprintf(DEBUG_VERBOSE,  "ifidx: %d name: %s type:%d ptp:%d vlans-declared-local: %s%s", entry->ifidx, entry->ifname, entry->type,entry->ptp, vlans, (trunc ? "...":""));
+			vlan_free(entry->vlan_declared_local_last_print);
+			entry->vlan_declared_local_last_print = vlan_clone(entry->vlan_declared_local,"port->vdllp");
+		}
+		if (isdebug(DEBUG_VERBOSE) &&
 		    vlan_compare(entry->vlan_state_last_print, entry->vlan_state)) {
 			char vlans[4096];
 			int trunc = (sizeof(vlans) == vlan_dump(entry->vlan_state, vlans, sizeof(vlans)));
@@ -411,6 +420,7 @@ void port_del(int ifidx)
 
 	vlan_free(entry->vlan_to_add_last_print);
 	vlan_free(entry->vlan_state_last_print);
+	vlan_free(entry->vlan_declared_local_last_print);
 
 	vlan_free(entry->vlan_registered);
 	free(entry);
