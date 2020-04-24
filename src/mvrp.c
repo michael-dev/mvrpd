@@ -684,7 +684,7 @@ mvrp_timer_leaveAll_cb(struct if_entry *port, void *ctx)
         if (port->type != 1)
                 return;
 	if (!port->lastLeaveAllFromMe)
-		gracePeriod += (gracePeriodForRemoteLeaveAll / 2);
+                gracePeriod += (gracePeriodForRemoteLeaveAll / 2);
        	gracePeriod += getrandom(gracePeriodForRemoteLeaveAll / 2);
 
         if (port->lastLeaveAll + leaveAllInterval + gracePeriod > now->tv_sec)
