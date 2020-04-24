@@ -691,7 +691,7 @@ mvrp_timer_leave_cb(struct if_entry *port, void *ctx)
                 return;
         port->lastLeaveTimer = now->tv_sec;
 
-        if (isdebug(DEBUG_MVRP)) {
+        if (isdebug(DEBUG_MVRP) && vlan_notempty(port->vlan_declared_remote_leave2)) {
                 char buf[4096];
                 int rc;
                 rc = (sizeof(buf) == vlan_dump(port->vlan_declared_remote_leave2, buf, sizeof(buf)));

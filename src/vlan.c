@@ -486,3 +486,10 @@ vlan_compare(struct vlan_arr *arr1, struct vlan_arr *arr2)
 
 	return 0;
 }
+
+// 0 if empty, 1 else
+int
+vlan_notempty(struct vlan_arr *arr)
+{
+	return !!arr->numentries;
+}
