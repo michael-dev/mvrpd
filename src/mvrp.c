@@ -96,6 +96,7 @@ mvrp_handle_leaveall(struct if_entry *port)
         clock_gettime(CLOCK_MONOTONIC, &tv);
         port->lastLeaveAll = tv.tv_sec;
         mvrp_do_leaveall(port);
+        eprintf(DEBUG_MVRP, "received leaveAll on port %s(%d) [type=%d], trigger sending", port->ifname, port->ifidx, port->type);
 }
 
 static const char *
@@ -177,7 +178,7 @@ mvrp_parse_event(struct if_entry *port, const int attrtype, const int attrlen, c
  * note: endmark has length 2, all others length > 2
  */
 static size_t
-mvrp_parse_vecattr(struct if_entry *port, const int attrtype, const int attrlen, const unsigned char* msgbuf, size_t bytes)
+mvrp_parse_vecattr(struct if_entry *port, const int attrtype, const int attrlen, const unsigned char* msgbuf, size_t bytes, int *leaveAllDone)
 {
         const struct mrpdu_vectorattrib *mrpdu_vec = NULL;
         size_t consumed = 0;
@@ -217,8 +218,10 @@ mvrp_parse_vecattr(struct if_entry *port, const int attrtype, const int attrlen,
 
         const unsigned char *vector = msgbuf + consumed;
 
-        if (leaveAllEvent == 0x1)
+        if (leaveAllEvent == 0x1 && !(*leaveAllDone)) {
                 mvrp_handle_leaveall(port);
+		*leaveAllDone = 1;
+	}
 
         // vector can be either fourpackedevents or threepackedevents
         // MVRP only used threepackedevents
@@ -271,6 +274,7 @@ mvrp_parse_msg(struct if_entry *port, const unsigned char *msgbuf, size_t bytes)
 {
         const struct mrpdu_message *mrpdu_msg = NULL;
         size_t consumed = 0;
+	int leaveAllDone = 0;
 
         /* test for endmark */
         if (bytes >= 2 &&
@@ -293,7 +297,7 @@ mvrp_parse_msg(struct if_entry *port, const unsigned char *msgbuf, size_t bytes)
         eprintf(DEBUG_MVRP,  "MVRP:   * attrtype=%d attrlen=%d", attrtype, attrlen);
         while (consumed < bytes) {
                 eprintf(DEBUG_MVRP,  "MVRP:   parse another vector chunk with %zd bytes left", bytes - consumed);
-                size_t rc = mvrp_parse_vecattr(port, attrtype, attrlen, msgbuf + consumed, bytes - consumed);
+                size_t rc = mvrp_parse_vecattr(port, attrtype, attrlen, msgbuf + consumed, bytes - consumed, &leaveAllDone);
                 consumed += rc;
                 if (rc == 0)
                         return 0;
@@ -676,6 +680,7 @@ mvrp_timer_leaveAll_cb(struct if_entry *port, void *ctx)
         if (port->lastLeaveAll + leaveAllInterval > now->tv_sec)
                 return;
         port->lastLeaveAll = now->tv_sec;
+        eprintf(DEBUG_VERBOSE, "send periodic leaveAll on port %s(%d) [type=%d]", port->ifname, port->ifidx, port->type);
         mvrp_do_leaveall(port);
         _mvrp_send(port, 1, 1);
 }
