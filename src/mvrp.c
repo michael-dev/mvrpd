@@ -26,6 +26,7 @@
 #include "ether.h"
 #include "port.h"
 #include "vlan.h"
+#include "random.h"
 
 #include <assert.h>
 #include <string.h>
@@ -40,6 +41,7 @@
 const time_t leaveAllInterval = 60;
 const time_t leaveTimeout = 5; // at least, at most twice
 const time_t periodicSendInterval = 10;
+const time_t gracePeriodForRemoteLeaveAll = 10;
 
 struct mrpdu_message {
         uint8_t AttributeType;
@@ -95,6 +97,7 @@ mvrp_handle_leaveall(struct if_entry *port)
         struct timespec tv;
         clock_gettime(CLOCK_MONOTONIC, &tv);
         port->lastLeaveAll = tv.tv_sec;
+        port->lastLeaveAllFromMe = 0;
         mvrp_do_leaveall(port);
         eprintf(DEBUG_MVRP, "received leaveAll on port %s(%d) [type=%d], trigger sending", port->ifname, port->ifidx, port->type);
 }
@@ -676,11 +679,18 @@ static void
 mvrp_timer_leaveAll_cb(struct if_entry *port, void *ctx)
 {
         struct timespec *now = ctx;
+	int gracePeriod = 0;
+
         if (port->type != 1)
                 return;
-        if (port->lastLeaveAll + leaveAllInterval > now->tv_sec)
+	if (!port->lastLeaveAllFromMe)
+		gracePeriod += (gracePeriodForRemoteLeaveAll / 2);
+       	gracePeriod += getrandom(gracePeriodForRemoteLeaveAll / 2);
+
+        if (port->lastLeaveAll + leaveAllInterval + gracePeriod > now->tv_sec)
                 return;
         port->lastLeaveAll = now->tv_sec;
+        port->lastLeaveAllFromMe = 1;
         eprintf(DEBUG_VERBOSE, "send periodic leaveAll on port %s(%d) [type=%d]", port->ifname, port->ifidx, port->type);
         mvrp_do_leaveall(port);
         _mvrp_send(port, 1, 1);

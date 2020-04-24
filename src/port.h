@@ -49,6 +49,7 @@ struct if_entry
 
 	unsigned int needSend:1; // indicates a leave message has been received and thus join should be sent
 	time_t lastLeaveAll;
+	time_t lastLeaveAllFromMe;
 	time_t lastLeaveTimer;
 	time_t lastSent;
 
