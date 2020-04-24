@@ -54,6 +54,7 @@ AC_HEADER_STDC
 
 # Checks for library functions.
 AC_FUNC_MEMCMP
+AC_SEARCH_LIBS([floor], [m])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
