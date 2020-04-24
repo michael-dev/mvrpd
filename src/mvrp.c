@@ -365,6 +365,7 @@ mvrp_got_packet(const int ptype, const unsigned char *packet, const int len, con
                 return;
         }
 
+        eprintf(DEBUG_MVRP, "receive on port %s(%d) [type=%d]", port->ifname, port->ifidx, port->type);
         int rc = mvrp_parse_pdu(port, packet, len);
         if (rc < 0)
                 eprintf(DEBUG_ERROR,  "MVRP: bad packet ignored");
