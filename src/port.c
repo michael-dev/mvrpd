@@ -88,10 +88,11 @@ add_if(const int ifidx)
 	memset(entry, 0, sizeof(*entry));
 	entry->ifidx = ifidx;
 	entry->next = ifHead;
-	entry->vlan_registered = vlan_alloc("port->vr");
+	entry->vlan_state = vlan_alloc("port->vr");
+
+	assert(!entry->vlan_to_add_last_print);
 	entry->vlan_to_add_last_print = vlan_alloc("port->vtalp");
-	entry->vlan_state_last_print = vlan_alloc("port->vslp");
-	entry->vlan_declared_local_last_print = vlan_alloc("port->vdllp");
+	assert(entry->vlan_to_add_last_print);
 
 	ifHead = entry;
 	return entry;
@@ -104,13 +105,17 @@ conf_uplink(struct if_entry *entry)
 	entry->sock = mvrp_listen(entry->ifidx, entry->ifname, entry->mac);
 	assert(entry->sock);
 	
-	assert(!entry->vlan_state);
-	entry->vlan_state = vlan_alloc("port->vs");
-	assert(entry->vlan_state);
+	assert(!entry->vlan_registered_local);
+	entry->vlan_registered_local = vlan_alloc("port->vs");
+	assert(entry->vlan_registered_local);
 
-	assert(!entry->vlan_registered_lastSend);
-	entry->vlan_registered_lastSend = vlan_alloc("port->vrlS");
-	assert(entry->vlan_registered_lastSend);
+	assert(!entry->vlan_registered_local_last_print);
+	entry->vlan_registered_local_last_print = vlan_alloc("port->vslp");
+	assert(entry->vlan_registered_local_last_print);
+
+	assert(!entry->vlan_registered_local_lastSend);
+	entry->vlan_registered_local_lastSend = vlan_alloc("port->vrlS");
+	assert(entry->vlan_registered_local_lastSend);
 
 	assert(!entry->vlan_registered_remote);
 	entry->vlan_registered_remote = vlan_alloc("port->vrr");
@@ -132,6 +137,10 @@ conf_uplink(struct if_entry *entry)
 	entry->vlan_declared_local = vlan_alloc("port->vdl");
 	assert(entry->vlan_declared_local);
 
+	assert(!entry->vlan_declared_local_last_print);
+	entry->vlan_declared_local_last_print = vlan_alloc("port->vdllp");
+	assert(entry->vlan_declared_local_last_print);
+
 	assert(!entry->vlan_declared_local_lastSend);
 	entry->vlan_declared_local_lastSend = vlan_alloc("port->vdllS");
 	assert(entry->vlan_declared_local_lastSend);
@@ -144,11 +153,14 @@ deconf_uplink(struct if_entry *entry)
 		mvrp_close(entry->sock);
 	entry->sock =  NULL;
 
-	vlan_free(entry->vlan_state);
-	entry->vlan_state = NULL;
+	vlan_free(entry->vlan_registered_local);
+	entry->vlan_registered_local = NULL;
 
-	vlan_free(entry->vlan_registered_lastSend);
-	entry->vlan_registered_lastSend = NULL;
+	vlan_free(entry->vlan_registered_local_last_print);
+	entry->vlan_registered_local_last_print = NULL;
+
+	vlan_free(entry->vlan_registered_local_lastSend);
+	entry->vlan_registered_local_lastSend = NULL;
 
 	vlan_free(entry->vlan_registered_remote);
 	entry->vlan_registered_remote = NULL;
@@ -165,6 +177,9 @@ deconf_uplink(struct if_entry *entry)
 	vlan_free(entry->vlan_declared_local);
 	entry->vlan_declared_local = NULL;
 
+	vlan_free(entry->vlan_declared_local_last_print);
+	entry->vlan_declared_local_last_print = NULL;
+
 	vlan_free(entry->vlan_declared_local_lastSend);
 	entry->vlan_declared_local_lastSend = NULL;
 }
@@ -179,26 +194,26 @@ update_if(struct if_entry *entry, int type, const char *ifname, const char *mac,
 	entry->ptp = ptp;
 	strncpy(entry->ifname, ifname, IFNAMSIZ-1); 
 
-	vlan_free(entry->vlan_registered);
-	entry->vlan_registered = vlan_clone(vlan, "port->vr");
-	if (!entry->vlan_registered) {
+	vlan_free(entry->vlan_state);
+	entry->vlan_state = vlan_clone(vlan, "port->vr");
+	if (!entry->vlan_state) {
 		eprintf(DEBUG_ERROR, "out of memory at %s:%d in %s", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		exit(254);
 	}
 
 	if (isdebug(DEBUG_PORT)) {
 		char vlans[4096];
-		int trunc = (sizeof(vlans) == vlan_dump(entry->vlan_registered, vlans, sizeof(vlans)));
+		int trunc = (sizeof(vlans) == vlan_dump(entry->vlan_state, vlans, sizeof(vlans)));
 		eprintf(DEBUG_PORT,  "ifidx: %d name: %s type:%d ptp:%d vlans: %s%s", entry->ifidx, entry->ifname, type,entry->ptp, vlans, (trunc ? "...":""));
 	}
 
 	if (entry->type == type)
 		return;
-	if (entry->type == 1)
+	if (entry->type == IF_MVRP)
 		/* uplink aka mvrp */
 		deconf_uplink(entry);
 	entry->type = type;
-	if (entry->type == 1)
+	if (entry->type == IF_MVRP)
 		/* uplink aka mvrp */
 		conf_uplink(entry);
 }
@@ -210,7 +225,7 @@ dump_if(int s)
 	char vlans[4096];
 
  	for (entry = ifHead; entry; entry = entry->next) {
-		int trunc = (sizeof(vlans) == vlan_dump(entry->vlan_registered, vlans, sizeof(vlans)));
+		int trunc = (sizeof(vlans) == vlan_dump(entry->vlan_state, vlans, sizeof(vlans)));
 		eprintf(DEBUG_PORT,  "port: ifidx: %d name: %s type:%d ptp:%d vlans: %s%s", entry->ifidx, entry->ifname, entry->type, entry->ptp, vlans, (trunc ? "...":""));
 	}
 }
@@ -227,14 +242,27 @@ port_configure_br_vlan(struct if_entry *entry, struct vlan_arr *vlan_register) {
 			continue;
 		if (!vlan_test(entry->vlan_declared_remote, vid))
 			continue;
-		if (vlan_test(entry->vlan_registered, vid) && 
-		    vlan_test(entry->vlan_state, vid))
+		if (vlan_test(entry->vlan_state, vid) && 
+		    vlan_test(entry->vlan_registered_local, vid))
 			continue;
-		vlan_set(entry->vlan_state, vid);
+		vlan_set(entry->vlan_registered_local, vid);
 		vlan_set(vlan_add, vid);
 		hasadd = 1;
 	}
 
+	it = 0;
+	vid = 0;
+	while (vlan_next(entry->vlan_registered_local, &it, &vid) == 0) {
+		if (vlan_test(ignVlan, vid))
+			continue;
+		if (vlan_test(vlan_register, vid) &&
+		    vlan_test(entry->vlan_declared_remote, vid))
+			continue;
+		vlan_unset(entry->vlan_registered_local, vid);
+		vlan_set(vlan_del, vid);
+		hasdel = 1;
+	}
+	
 	it = 0;
 	vid = 0;
 	while (vlan_next(entry->vlan_state, &it, &vid) == 0) {
@@ -243,20 +271,7 @@ port_configure_br_vlan(struct if_entry *entry, struct vlan_arr *vlan_register) {
 		if (vlan_test(vlan_register, vid) &&
 		    vlan_test(entry->vlan_declared_remote, vid))
 			continue;
-		vlan_unset(entry->vlan_state, vid);
-		vlan_set(vlan_del, vid);
-		hasdel = 1;
-	}
-	
-	it = 0;
-	vid = 0;
-	while (vlan_next(entry->vlan_registered, &it, &vid) == 0) {
-		if (vlan_test(ignVlan, vid))
-			continue;
-		if (vlan_test(vlan_register, vid) &&
-		    vlan_test(entry->vlan_declared_remote, vid))
-			continue;
-		vlan_unset(entry->vlan_state, vid); // vlan_registered is managed by NEWLINK messages on bridge!
+		vlan_unset(entry->vlan_registered_local, vid); // vlan_state is managed by NEWLINK messages on bridge!
 		vlan_set(vlan_del, vid);
 		hasdel = 1;
 	}
@@ -274,19 +289,33 @@ port_configure_br_vlan(struct if_entry *entry, struct vlan_arr *vlan_register) {
 	if (isdebug(DEBUG_PORT)) {
 		char buf[4096];
 		int trunc;
+		
 		eprintf(DEBUG_PORT, "configure vlans on %s", entry->ifname);
+		
 		trunc = (sizeof(buf) == vlan_dump(vlan_add, buf, sizeof(buf)));
 		eprintf(DEBUG_PORT, " * add vlan %s%s, hasadd=%d", buf, trunc ? "..." : "", hasadd);
+		
 		trunc = (sizeof(buf) == vlan_dump(vlan_del, buf, sizeof(buf)));
 		eprintf(DEBUG_PORT, " * del vlan %s%s, hasdel=%d", buf, trunc ? "..." : "", hasdel);
+		
 		trunc = (sizeof(buf) == vlan_dump(entry->vlan_declared_remote, buf, sizeof(buf)));
 		eprintf(DEBUG_PORT, " * declared_remote: %s%s", buf, trunc ? "..." : "");
-		trunc = (sizeof(buf) == vlan_dump(vlan_register, buf, sizeof(buf)));
+		
+		trunc = (sizeof(buf) == vlan_dump(entry->vlan_registered_remote, buf, sizeof(buf)));
+		eprintf(DEBUG_PORT, " * register remote: %s%s", buf, trunc ? "..." : "");
+
+		trunc = (sizeof(buf) == vlan_dump(entry->vlan_declared_local, buf, sizeof(buf)));
+		eprintf(DEBUG_PORT, " * declared_locally: %s%s", buf, trunc ? "..." : "");
+		
+		trunc = (sizeof(buf) == vlan_dump(entry->vlan_registered_local, buf, sizeof(buf)));
 		eprintf(DEBUG_PORT, " * register locally: %s%s", buf, trunc ? "..." : "");
-		trunc = (sizeof(buf) == vlan_dump(entry->vlan_registered, buf, sizeof(buf)));
-		eprintf(DEBUG_PORT, " * registered locally: %s%s", buf, trunc ? "..." : "");
+		
 		trunc = (sizeof(buf) == vlan_dump(entry->vlan_state, buf, sizeof(buf)));
-		eprintf(DEBUG_PORT, " * state: %s%s", buf, trunc ? "..." : "");
+		eprintf(DEBUG_PORT, " * local netif state: %s%s", buf, trunc ? "..." : "");
+		
+		trunc = (sizeof(buf) == vlan_dump(vlan_register, buf, sizeof(buf)));
+		eprintf(DEBUG_PORT, " * wanted in this run: %s%s", buf, trunc ? "..." : "");
+
 		trunc = (sizeof(buf) == vlan_dump(ignVlan, buf, sizeof(buf)));
 		eprintf(DEBUG_PORT, " * ignore: %s%s", buf, trunc ? "..." : "");
 	}
@@ -310,12 +339,12 @@ port_recompute_timer(void *ctx)
 
 	for (entry = ifHead; entry; entry = entry->next) {
 		struct vlan_arr *vlan_to_add;
-		if (entry->type == 1 && !restrictToEp)
+		if (entry->type == IF_MVRP && !restrictToEp)
 			// uplink
 			vlan_to_add = entry->vlan_declared_remote;
-		else if (entry->type == 2)
+		else if (entry->type == IF_STATIC)
 			// ep
-			vlan_to_add = entry->vlan_registered;
+			vlan_to_add = entry->vlan_state;
 		else
 			continue;
 
@@ -354,7 +383,7 @@ port_recompute_timer(void *ctx)
 	}
 
 	for (entry = ifHead; entry; entry = entry->next) {
-		if (entry->type != 1)
+		if (entry->type != IF_MVRP)
 			continue;
 
 		if (isdebug(DEBUG_VERBOSE) && restrictToEp &&
@@ -391,12 +420,12 @@ port_recompute_timer(void *ctx)
 			entry->vlan_declared_local_last_print = vlan_clone(entry->vlan_declared_local,"port->vdllp");
 		}
 		if (isdebug(DEBUG_VERBOSE) &&
-		    vlan_compare(entry->vlan_state_last_print, entry->vlan_state)) {
+		    vlan_compare(entry->vlan_registered_local_last_print, entry->vlan_registered_local)) {
 			char vlans[4096];
-			int trunc = (sizeof(vlans) == vlan_dump(entry->vlan_state, vlans, sizeof(vlans)));
-			eprintf(DEBUG_VERBOSE,  "ifidx: %d name: %s type:%d ptp:%d vlans-state: %s%s", entry->ifidx, entry->ifname, entry->type,entry->ptp, vlans, (trunc ? "...":""));
-			vlan_free(entry->vlan_state_last_print);
-			entry->vlan_state_last_print = vlan_clone(entry->vlan_state,"port->vslp");
+			int trunc = (sizeof(vlans) == vlan_dump(entry->vlan_registered_local, vlans, sizeof(vlans)));
+			eprintf(DEBUG_VERBOSE,  "ifidx: %d name: %s type:%d ptp:%d vlans-registered-local: %s%s", entry->ifidx, entry->ifname, entry->type,entry->ptp, vlans, (trunc ? "...":""));
+			vlan_free(entry->vlan_registered_local_last_print);
+			entry->vlan_registered_local_last_print = vlan_clone(entry->vlan_registered_local,"port->vslp");
 		}
 	}
 
@@ -421,15 +450,14 @@ void port_del(int ifidx)
 	else
 		ifHead = entry->next;
 
-	if (entry->type == 1)
+	if (entry->type == IF_MVRP)
 		/* uplink aka mvrp */
 		deconf_uplink(entry);
 
-	vlan_free(entry->vlan_to_add_last_print);
-	vlan_free(entry->vlan_state_last_print);
-	vlan_free(entry->vlan_declared_local_last_print);
+	vlan_free(entry->vlan_state);
 
-	vlan_free(entry->vlan_registered);
+	vlan_free(entry->vlan_to_add_last_print);
+
 	free(entry);
 }
 
@@ -439,6 +467,7 @@ void port_add(int type, int ifidx, const char *ifname, int ptp, struct vlan_arr 
 	if (!entry)
 		entry = add_if(ifidx);
 	update_if(entry, type, ifname, mac, ptp, vlan);
+
 	port_vlan_changed();
 }
 

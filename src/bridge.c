@@ -172,7 +172,7 @@ obj_input_newlink(struct rtnl_link *link, struct nl_msg *msg, int fromDump)
 
 	eprintf(DEBUG_BRIDGE, "NEWLINK: %s(%d) type %d", ifname, ifidx, type);
 
-	if (type == 0 || (type == 1 && ifidx == bridgeIfIdx)) {
+	if (type == IF_UNDEF || (type == IF_MVRP && ifidx == bridgeIfIdx)) {
 		port_del(ifidx);
 		return;
 	}

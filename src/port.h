@@ -27,6 +27,12 @@
 
 struct vlan_arr;
 
+enum {
+	IF_UNDEF  = 0,
+	IF_MVRP = 1,
+	IF_STATIC   = 2
+};
+
 struct if_entry
 {
 	int type;
@@ -35,34 +41,35 @@ struct if_entry
 	char mac[ETH_ALEN];
 	int ptp;
 
-	/* vlans configured locally, managed by bridge NEWLINK monitoring */
-	struct vlan_arr *vlan_registered;
-	struct vlan_arr *vlan_registered_lastSend;
-
-	/* vlans configured locally managed by mvrpd */
+	/* vlans configured locally, managed by bridge NEWLINK monitoring; mainly for IF_STATIC */
 	struct vlan_arr *vlan_state;
 
-	/* vlans declared (aka requested) remotely, managed by mvrp */
+	/* vlans declared (aka requested) locally on IF_MVRP interfaces */
+	struct vlan_arr *vlan_declared_local;
+	struct vlan_arr *vlan_declared_local_lastSend;
+
+	/* vlans declared (aka requested) remotely on IF_MVRP interfaces */
 	struct vlan_arr *vlan_declared_remote;
 	struct vlan_arr *vlan_declared_remote_leave;
 	struct vlan_arr *vlan_declared_remote_leave2;
 
-	/* vlan registered (aka configured) remotely, managed my myvrp */
+	/* vlans configured locally managed by mvrpd on IF_MVRP interfaces */
+	struct vlan_arr *vlan_registered_local;
+	struct vlan_arr *vlan_registered_local_lastSend;
+
+	/* vlan registered (aka configured) remotely on IF_MVRP interfaces */
 	struct vlan_arr *vlan_registered_remote;
 
+	/* MVRP state tracking */
 	unsigned int needSend:1; // indicates a leave message has been received and thus join should be sent
 	time_t lastLeaveAll;
 	time_t lastLeaveAllFromMe;
 	time_t lastLeaveTimer;
 	time_t lastSent;
 
-	/* vlans declared (aka requested) locally, managed by all other ports (uplink or not) */
-	struct vlan_arr *vlan_declared_local;
-	struct vlan_arr *vlan_declared_local_lastSend;
-
 	/* debugging */
 	struct vlan_arr *vlan_to_add_last_print;
-	struct vlan_arr *vlan_state_last_print;
+	struct vlan_arr *vlan_registered_local_last_print;
 	struct vlan_arr *vlan_declared_local_last_print;
 
 	/* else */

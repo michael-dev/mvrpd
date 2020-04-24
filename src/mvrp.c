@@ -128,7 +128,7 @@ mvrp_handle_vlan_event(struct if_entry *port, int event, int vid)
 {
         if (!port)
                 return;
-        assert(port->type == 1);
+        assert(port->type == IF_MVRP);
 
         switch (event) {
         case MVRP_EV_JOININ:
@@ -378,7 +378,7 @@ mvrp_got_packet(const int ptype, const unsigned char *packet, const int len, con
         }
 
         struct if_entry *port = port_get_by_ifidx(ifindex);
-        if (!port || port->type != 1) {
+        if (!port || port->type != IF_MVRP) {
                 eprintf(DEBUG_MVRP,  "port %s(%d) not listening, maybe due to NFLOG", ifname, ifindex);
                 return;
         }
@@ -463,9 +463,9 @@ mvrp_build_msg(struct if_entry *port, int leaveAll, unsigned char *msgbuf, size_
                 while (viddn <= vid)
                         vlan_next(port->vlan_declared_local, &itdn, &viddn);
                 while (vidro <= vid)
-                        vlan_next(port->vlan_registered_lastSend, &itro, &vidro);
+                        vlan_next(port->vlan_registered_local_lastSend, &itro, &vidro);
                 while (vidrn <= vid)
-                        vlan_next(port->vlan_registered, &itrn, &vidrn);
+                        vlan_next(port->vlan_registered_local, &itrn, &vidrn);
 
                 vid = MIN(viddo, viddn, vidro, vidrn);
                 if (vid == 0xffff)
@@ -620,11 +620,11 @@ _mvrp_send(struct if_entry *port, int leaveAll, int force)
                 eprintf(DEBUG_VERBOSE,  "MVRP: failed to build packet - nothing to send on %s(%d)", port->ifname, port->ifidx);
                 return;
         }
-	if (vlan_compare(port->vlan_registered, port->vlan_registered_remote)) {
+	if (vlan_compare(port->vlan_registered_local, port->vlan_registered_remote)) {
                 char buf[4096];
                 int rc;
                 eprintf(DEBUG_VERBOSE, "inconsistent state for registered vlans on local and remote side %s(%d)", port->ifname, port->ifidx);
-                rc = (sizeof(buf) == vlan_dump(port->vlan_registered, buf, sizeof(buf)));
+                rc = (sizeof(buf) == vlan_dump(port->vlan_registered_local, buf, sizeof(buf)));
                 eprintf(DEBUG_VERBOSE, " * local registered vlans %s%s", buf, rc ? "...":"");
                 rc = (sizeof(buf) == vlan_dump(port->vlan_registered_remote, buf, sizeof(buf)));
                 eprintf(DEBUG_VERBOSE, " * remote registered vlans %s%s", buf, rc ? "...":"");
@@ -640,11 +640,11 @@ _mvrp_send(struct if_entry *port, int leaveAll, int force)
                 int rc;
                 rc = (sizeof(buf) == vlan_dump(port->vlan_declared_local, buf, sizeof(buf)));
                 eprintf(DEBUG_MVRP, "send packet declaring vlans %s%s", buf, rc ? "...":"");
-                rc = (sizeof(buf) == vlan_dump(port->vlan_registered, buf, sizeof(buf)));
+                rc = (sizeof(buf) == vlan_dump(port->vlan_registered_local, buf, sizeof(buf)));
                 eprintf(DEBUG_MVRP, "send packet registered vlans %s%s", buf, rc ? "...":"");
                 rc = (sizeof(buf) == vlan_dump(port->vlan_declared_local_lastSend, buf, sizeof(buf)));
                 eprintf(DEBUG_MVRP, "send packet declaring vlans lastSend %s%s", buf, rc ? "...":"");
-                rc = (sizeof(buf) == vlan_dump(port->vlan_registered_lastSend, buf, sizeof(buf)));
+                rc = (sizeof(buf) == vlan_dump(port->vlan_registered_local_lastSend, buf, sizeof(buf)));
                 eprintf(DEBUG_MVRP, "send packet registered vlans lastSend %s%s", buf, rc ? "...":"");
 
                 eprintf(DEBUG_MVRP, "send packet (start)");
@@ -657,8 +657,8 @@ _mvrp_send(struct if_entry *port, int leaveAll, int force)
         ether_send(port->sock, NULL, packet, len);
 
         // record changes
-        vlan_free(port->vlan_registered_lastSend);
-        port->vlan_registered_lastSend = vlan_clone(port->vlan_registered, "port->vrlS");
+        vlan_free(port->vlan_registered_local_lastSend);
+        port->vlan_registered_local_lastSend = vlan_clone(port->vlan_registered_local, "port->vrlS");
 
         vlan_free(port->vlan_declared_local_lastSend);
         port->vlan_declared_local_lastSend = vlan_clone(port->vlan_declared_local, "port->vdllS");
@@ -685,7 +685,7 @@ static void
 mvrp_timer_leave_cb(struct if_entry *port, void *ctx)
 {
         struct timespec *now = ctx;
-        if (port->type != 1)
+        if (port->type != IF_MVRP)
                 return;
         if (port->lastLeaveTimer + leaveTimeout > now->tv_sec)
                 return;
@@ -715,7 +715,7 @@ mvrp_timer_leaveAll_cb(struct if_entry *port, void *ctx)
         struct timespec *now = ctx;
 	int gracePeriod = 0;
 
-        if (port->type != 1)
+        if (port->type != IF_MVRP)
                 return;
 	if (!port->lastLeaveAllFromMe)
                 gracePeriod += (gracePeriodForRemoteLeaveAll / 2);
@@ -734,7 +734,7 @@ static void
 mvrp_timer_periodic_send_cb(struct if_entry *port, void *ctx)
 {
         struct timespec *now = ctx;
-        if (port->type != 1)
+        if (port->type != IF_MVRP)
                 return;
         if (port->lastSent + periodicSendInterval > now->tv_sec &&
             !port->needSend)
