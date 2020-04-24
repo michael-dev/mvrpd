@@ -1,3 +1,9 @@
+mvrpd-fem (0.7) unstable; urgency=medium
+
+  * fix leaveAll
+
+ -- Michael Braun <michael-dev@fami-braun.de>  Fri, 24 Apr 2020 14:40:09 +0200
+
 mvrpd-fem (0.6) unstable; urgency=medium
 
   * debug more in verbose
