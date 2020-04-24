@@ -151,6 +151,21 @@ mvrp_handle_vlan_event(struct if_entry *port, int event, int vid)
                         break;
                 vlan_unset(port->vlan_declared_remote, vid);
         }
+
+        switch (event) {
+        case MVRP_EV_JOININ:
+        case MVRP_EV_IN:
+                vlan_set(port->vlan_registered_remote, vid);
+                break;
+        case MVRP_EV_LV:
+                if (!port->ptp)
+                        break;
+        case MVRP_EV_JOINMT:
+        case MVRP_EV_MT:
+        case MVRP_EV_NEW:
+                vlan_unset(port->vlan_registered_remote, vid);
+                break;
+        }
 }
 
 static void
@@ -605,6 +620,17 @@ _mvrp_send(struct if_entry *port, int leaveAll, int force)
                 eprintf(DEBUG_VERBOSE,  "MVRP: failed to build packet - nothing to send on %s(%d)", port->ifname, port->ifidx);
                 return;
         }
+	if (vlan_compare(port->vlan_registered, port->vlan_registered_remote)) {
+                char buf[4096];
+                int rc;
+                eprintf(DEBUG_VERBOSE, "inconsistent state for registered vlans on local and remote side %s(%d)", port->ifname, port->ifidx);
+                rc = (sizeof(buf) == vlan_dump(port->vlan_registered, buf, sizeof(buf)));
+                eprintf(DEBUG_VERBOSE, " * local registered vlans %s%s", buf, rc ? "...":"");
+                rc = (sizeof(buf) == vlan_dump(port->vlan_registered_remote, buf, sizeof(buf)));
+                eprintf(DEBUG_VERBOSE, " * remote registered vlans %s%s", buf, rc ? "...":"");
+
+		force = 1; // force sending
+	}
         if (!force && !ret.changes) {
                 eprintf(DEBUG_MVRP, "skip sending packet as nothing changed on port %s(%d)", port->ifname, port->ifidx);
                 return;
@@ -665,10 +691,18 @@ mvrp_timer_leave_cb(struct if_entry *port, void *ctx)
                 return;
         port->lastLeaveTimer = now->tv_sec;
 
+        if (isdebug(DEBUG_MVRP)) {
+                char buf[4096];
+                int rc;
+                rc = (sizeof(buf) == vlan_dump(port->vlan_declared_remote_leave2, buf, sizeof(buf)));
+                eprintf(DEBUG_MVRP, "discard remote vlans due to leaveTimer timing out for vlans %s%s", buf, rc ? "...":"");
+	}
+
         int it = 0;
         uint16_t vid = 0;
         while (vlan_next(port->vlan_declared_remote_leave2, &it, &vid) == 0) {
                 vlan_unset(port->vlan_declared_remote, vid);
+                vlan_unset(port->vlan_registered_remote, vid);
         }
         vlan_free(port->vlan_declared_remote_leave2);
         port->vlan_declared_remote_leave2 = port->vlan_declared_remote_leave;

@@ -47,6 +47,9 @@ struct if_entry
 	struct vlan_arr *vlan_declared_remote_leave;
 	struct vlan_arr *vlan_declared_remote_leave2;
 
+	/* vlan registered (aka configured) remotely, managed my myvrp */
+	struct vlan_arr *vlan_registered_remote;
+
 	unsigned int needSend:1; // indicates a leave message has been received and thus join should be sent
 	time_t lastLeaveAll;
 	time_t lastLeaveAllFromMe;

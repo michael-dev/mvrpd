@@ -112,6 +112,10 @@ conf_uplink(struct if_entry *entry)
 	entry->vlan_registered_lastSend = vlan_alloc("port->vrlS");
 	assert(entry->vlan_registered_lastSend);
 
+	assert(!entry->vlan_registered_remote);
+	entry->vlan_registered_remote = vlan_alloc("port->vrr");
+	assert(entry->vlan_registered_remote);
+
 	assert(!entry->vlan_declared_remote);
 	entry->vlan_declared_remote = vlan_alloc("port->vdr");
 	assert(entry->vlan_declared_remote);
@@ -145,6 +149,9 @@ deconf_uplink(struct if_entry *entry)
 
 	vlan_free(entry->vlan_registered_lastSend);
 	entry->vlan_registered_lastSend = NULL;
+
+	vlan_free(entry->vlan_registered_remote);
+	entry->vlan_registered_remote = NULL;
 
 	vlan_free(entry->vlan_declared_remote);
 	entry->vlan_declared_remote = NULL;
