@@ -466,17 +466,22 @@ vlan_free(struct vlan_arr *arr)
 int
 vlan_compare(struct vlan_arr *arr1, struct vlan_arr *arr2)
 {
-	int it = 0;
-	uint16_t vid = 0;
-	while (vlan_next(arr1, &it, &vid) == 0) {
-		if (!vlan_test(arr2, vid))
-			return 1;
-	}
+	int it1 = 0, it2 = 0;
+	uint16_t vid1 = 0, vid2 = 0;
+	int rc1, rc2;
 
-	it = 0;
-	while (vlan_next(arr2, &it, &vid) == 0) {
-		if (!vlan_test(arr1, vid))
-			return 1;
+	while (1) {
+		rc1 = vlan_next(arr1, &it1, &vid1);
+		rc2 = vlan_next(arr2, &it2, &vid2);
+
+		if (rc1 != 0 && rc2 != 0)
+			return 0; // success
+
+		if (rc1 != 0 || rc2 != 0)
+			return 1; // different number of vlans
+
+		if (vid1 != vid2)
+			return 1; // different vlan next
 	}
 
 	return 0;
