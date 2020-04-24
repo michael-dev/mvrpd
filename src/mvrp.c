@@ -220,8 +220,8 @@ mvrp_parse_vecattr(struct if_entry *port, const int attrtype, const int attrlen,
 
         if (leaveAllEvent == 0x1 && !(*leaveAllDone)) {
                 mvrp_handle_leaveall(port);
-		*leaveAllDone = 1;
-	}
+                *leaveAllDone = 1;
+        }
 
         // vector can be either fourpackedevents or threepackedevents
         // MVRP only used threepackedevents
@@ -274,7 +274,7 @@ mvrp_parse_msg(struct if_entry *port, const unsigned char *msgbuf, size_t bytes)
 {
         const struct mrpdu_message *mrpdu_msg = NULL;
         size_t consumed = 0;
-	int leaveAllDone = 0;
+        int leaveAllDone = 0;
 
         /* test for endmark */
         if (bytes >= 2 &&
