@@ -183,11 +183,12 @@ vlan_find_or_add_room(struct vlan_arr *arr, uint16_t vid)
 		assert(arr->meta[i].offset >= startoffset);
 		arr->meta[i].offset += extrabitmap;
 	}
-	for (uint8_t i = arr->numbitmap - 1; i >= startoffset + extrabitmap; i--) {
+	uint8_t endoffset = startoffset + extrabitmap;
+	for (uint8_t i = arr->numbitmap - 1; i >= endoffset; i--) {
 //		eprintf(DEBUG_GENERAL, "arr->bitmap=%p i=%d i-e=%d numbitmap=%d", arr->bitmap, i, i-extrabitmap, (int) arr->numbitmap);
 		arr->bitmap[i] = arr->bitmap[i - extrabitmap];
 	}
-	for (uint8_t i = startoffset; i < ((uint8_t) (startoffset + extrabitmap)); i++) {
+	for (uint8_t i = startoffset; i < endoffset; i++) {
 //		eprintf(DEBUG_GENERAL, "arr->bitmap=%p i=%d startoffset=%d e=%d numbitmap=%d", arr->bitmap, i, startoffset, extrabitmap, (int) arr->numbitmap);
 		arr->bitmap[i] = 0;
 	}
