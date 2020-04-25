@@ -24,7 +24,7 @@ naive approach:
 mvrp approach:
   * The switch records which ports are interested in a VLAN, either because they declared interest for a VLAN using MVRP or because it is configured manually.
   * The switch declares interest in a VLAN on each dynamic (MVRP-enabled) port, that indicates whether there are other ports on itself that also want this VLAN by registering for that VLAN.
-  * If the bridge has two or more ports that are interested in a VLAN, in will activate (aka configure or register) the VLAN on all interested ports.
+  * If the bridge has two or more ports that are interested in a VLAN, it will activate (aka configure or register) the VLAN on all interested ports.
 
 mvrpd
 -----
