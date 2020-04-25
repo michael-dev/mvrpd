@@ -133,6 +133,14 @@ conf_uplink(struct if_entry *entry)
 	entry->vlan_declared_remote_leave2 = vlan_alloc("port->vdrl2");
 	assert(entry->vlan_declared_remote_leave2);
 
+	assert(!entry->vlan_declared_remote_leaveAll);
+	entry->vlan_declared_remote_leaveAll = vlan_alloc("port->vdrla");
+	assert(entry->vlan_declared_remote_leaveAll);
+	
+	assert(!entry->vlan_declared_remote_leaveAll2);
+	entry->vlan_declared_remote_leaveAll2 = vlan_alloc("port->vdrla2");
+	assert(entry->vlan_declared_remote_leaveAll2);
+
 	assert(!entry->vlan_declared_local);
 	entry->vlan_declared_local = vlan_alloc("port->vdl");
 	assert(entry->vlan_declared_local);
@@ -173,6 +181,12 @@ deconf_uplink(struct if_entry *entry)
 
 	vlan_free(entry->vlan_declared_remote_leave2);
 	entry->vlan_declared_remote_leave2 = NULL;
+
+	vlan_free(entry->vlan_declared_remote_leaveAll);
+	entry->vlan_declared_remote_leaveAll = NULL;
+
+	vlan_free(entry->vlan_declared_remote_leaveAll2);
+	entry->vlan_declared_remote_leaveAll2 = NULL;
 
 	vlan_free(entry->vlan_declared_local);
 	entry->vlan_declared_local = NULL;

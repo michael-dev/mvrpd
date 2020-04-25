@@ -1,3 +1,9 @@
+mvrpd-fem (0.8) unstable; urgency=medium
+
+  * handle packet loss more gracefully
+
+ -- Michael Braun <michael-dev@fami-braun.de>  Sat, 25 Apr 2020 16:52:29 +0200
+
 mvrpd-fem (0.7) unstable; urgency=medium
 
   * fix leaveAll

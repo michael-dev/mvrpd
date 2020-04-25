@@ -50,8 +50,12 @@ struct if_entry
 
 	/* vlans declared (aka requested) remotely on IF_MVRP interfaces */
 	struct vlan_arr *vlan_declared_remote;
+	/* leave: wait for others on link to say "but hey, I still need it" */
 	struct vlan_arr *vlan_declared_remote_leave;
 	struct vlan_arr *vlan_declared_remote_leave2;
+	/* leaveAll needs a bigger timer as we see too much packet loss so periodic timer can make up */
+	struct vlan_arr *vlan_declared_remote_leaveAll;
+	struct vlan_arr *vlan_declared_remote_leaveAll2;
 
 	/* vlans configured locally managed by mvrpd on IF_MVRP interfaces */
 	struct vlan_arr *vlan_registered_local;
@@ -62,10 +66,11 @@ struct if_entry
 
 	/* MVRP state tracking */
 	unsigned int needSend:1; // indicates a leave message has been received and thus join should be sent
-	time_t lastLeaveAll;
-	time_t lastLeaveAllFromMe;
-	time_t lastLeaveTimer;
-	time_t lastSent;
+	time_t lastLeaveAll; /* sent or received leaveAll at this timestamp */
+	time_t lastLeaveAllFromMe; /* was it sent or receive at lastLeaveAll? */
+	time_t lastLeaveAllLeaveTimer; /* when did i last purge vlans not refreshed after leaveAll */
+	time_t lastLeaveTimer; /* leave, not leaveAll */
+	time_t lastSent; /* periodic timer */
 
 	/* debugging */
 	struct vlan_arr *vlan_to_add_last_print;

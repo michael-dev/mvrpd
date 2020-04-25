@@ -32,14 +32,12 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-#define MIN(a,b,c,d) ( \
-                ( a <= b && a <= c && a <= d ) ? a : \
-                ( b <= a && b <= c && b <= d ) ? b : \
-                ( c <= a && c <= b && c <= d ) ? c : \
-                d )
+#define MIN2(a,b) ( a <= b ? a : b)
+#define MIN(a,b,c,d,e,f) MIN2(MIN2(MIN2(MIN2(MIN2(a,b),c),d),e),f)
 
 const time_t leaveAllInterval = 60;
 const time_t leaveTimeout = 5; // at least, at most twice
+const time_t leaveAllLeaveTimeout = 50; // at least, at most twice
 const time_t periodicSendInterval = 10;
 const time_t gracePeriodForRemoteLeaveAll = 10;
 
@@ -83,8 +81,8 @@ static void
 mvrp_do_leaveall(struct if_entry *port)
 {
 
-        vlan_free(port->vlan_declared_remote_leave);
-        port->vlan_declared_remote_leave = vlan_clone(port->vlan_declared_remote, "port->drl");
+        vlan_free(port->vlan_declared_remote_leaveAll);
+        port->vlan_declared_remote_leaveAll = vlan_clone(port->vlan_declared_remote, "port->drl");
         port->needSend = 1;
 }
 
@@ -137,6 +135,8 @@ mvrp_handle_vlan_event(struct if_entry *port, int event, int vid)
                 vlan_set(port->vlan_declared_remote, vid);
                 vlan_unset(port->vlan_declared_remote_leave, vid);
                 vlan_unset(port->vlan_declared_remote_leave2, vid);
+                vlan_unset(port->vlan_declared_remote_leaveAll, vid);
+                vlan_unset(port->vlan_declared_remote_leaveAll2, vid);
                 break;
         case MVRP_EV_LV:
                 if (!port->ptp) {
@@ -150,6 +150,9 @@ mvrp_handle_vlan_event(struct if_entry *port, int event, int vid)
                 if (!port->ptp)
                         break;
                 vlan_unset(port->vlan_declared_remote, vid);
+		/* Leave while timer for leaveAll was running, skip it as already done */
+                vlan_unset(port->vlan_declared_remote_leaveAll, vid);
+                vlan_unset(port->vlan_declared_remote_leaveAll2, vid);
         }
 
         switch (event) {
@@ -451,9 +454,19 @@ mvrp_build_msg(struct if_entry *port, int leaveAll, unsigned char *msgbuf, size_
         ret->changes = ret->changes || leaveAll;
         ret->notempty = ret->notempty || leaveAll;
 
-        int itdo = 0, itdn = 0, itro = 0, itrn = 0;
-        uint16_t viddo = 0, viddn = 0, vidro = 0, vidrn = 0;
-        uint16_t vid = MIN(viddo, viddn, vidro, vidrn);
+        int itdo = 0, itdn = 0, itro = 0, itrn = 0, itrd = 0, itrr = 0;
+	/* I) report JOIN / JOININ
+	 * viddn: vlan id declared local new
+	 * vidrn: vlan id registered local new
+	 * II) report LEAVE / MT
+	 * viddo: vlan id declared local old
+	 * vidro: vlan id registered local old
+	 * III) fix inconsistent state for vlan ids remote is still interested in
+	 * virrd: vlan id remote declared
+	 * virrr: vlan id remote registered
+	 */
+        uint16_t viddo = 0, viddn = 0, vidro = 0, vidrn = 0, vidrd = 0, vidrr = 0;
+        uint16_t vid = MIN(viddo, viddn, vidro, vidrn, vidrd, vidrr);
         uint16_t lastvid = 0;
         uint8_t *vecitem = NULL; // make compiler quiet by initializing to NULL
 
@@ -466,8 +479,12 @@ mvrp_build_msg(struct if_entry *port, int leaveAll, unsigned char *msgbuf, size_
                         vlan_next(port->vlan_registered_local_lastSend, &itro, &vidro);
                 while (vidrn <= vid)
                         vlan_next(port->vlan_registered_local, &itrn, &vidrn);
+                while (vidrd <= vid)
+                        vlan_next(port->vlan_declared_remote, &itrd, &vidrd);
+                while (vidrr <= vid)
+                        vlan_next(port->vlan_registered_remote, &itrr, &vidrr);
 
-                vid = MIN(viddo, viddn, vidro, vidrn);
+                vid = MIN(viddo, viddn, vidro, vidrn, vidrd, vidrr);
                 if (vid == 0xffff)
                         break;
                 eprintf(DEBUG_MVRP, "add vid %hu, declaration: old=%d new=%d, registration: old=%d, new=%d",
@@ -703,6 +720,9 @@ mvrp_timer_leave_cb(struct if_entry *port, void *ctx)
         while (vlan_next(port->vlan_declared_remote_leave2, &it, &vid) == 0) {
                 vlan_unset(port->vlan_declared_remote, vid);
                 vlan_unset(port->vlan_registered_remote, vid);
+		/* leave already done, no need to repeat in leaveAll timer */
+                vlan_unset(port->vlan_declared_remote_leaveAll, vid);
+                vlan_unset(port->vlan_declared_remote_leaveAll2, vid);
         }
         vlan_free(port->vlan_declared_remote_leave2);
         port->vlan_declared_remote_leave2 = port->vlan_declared_remote_leave;
@@ -710,7 +730,38 @@ mvrp_timer_leave_cb(struct if_entry *port, void *ctx)
 }
 
 static void
-mvrp_timer_leaveAll_cb(struct if_entry *port, void *ctx)
+mvrp_timer_leaveAll_leave_cb(struct if_entry *port, void *ctx)
+{
+        struct timespec *now = ctx;
+        if (port->type != IF_MVRP)
+                return;
+        if (port->lastLeaveAllLeaveTimer + leaveAllLeaveTimeout > now->tv_sec)
+                return;
+        port->lastLeaveAllLeaveTimer = now->tv_sec;
+
+        if (isdebug(DEBUG_MVRP) && vlan_notempty(port->vlan_declared_remote_leaveAll2)) {
+                char buf[4096];
+                int rc;
+                rc = (sizeof(buf) == vlan_dump(port->vlan_declared_remote_leaveAll2, buf, sizeof(buf)));
+                eprintf(DEBUG_MVRP, "discard remote vlans due to leaveAllLeaveTimer timing out for vlans %s%s", buf, rc ? "...":"");
+	}
+
+        int it = 0;
+        uint16_t vid = 0;
+        while (vlan_next(port->vlan_declared_remote_leaveAll2, &it, &vid) == 0) {
+                vlan_unset(port->vlan_declared_remote, vid);
+                vlan_unset(port->vlan_registered_remote, vid);
+		/* leave already done, no need to repeat in leave timer */
+                vlan_unset(port->vlan_declared_remote_leave, vid);
+                vlan_unset(port->vlan_declared_remote_leave2, vid);
+        }
+        vlan_free(port->vlan_declared_remote_leaveAll2);
+        port->vlan_declared_remote_leaveAll2 = port->vlan_declared_remote_leaveAll;
+        port->vlan_declared_remote_leaveAll = vlan_alloc("port->vdrla");
+}
+
+static void
+mvrp_timer_leaveAllSend_cb(struct if_entry *port, void *ctx)
 {
         struct timespec *now = ctx;
 	int gracePeriod = 0;
@@ -749,7 +800,9 @@ mvrp_timer(void *ctx)
         clock_gettime(CLOCK_MONOTONIC, &tv);
         for_each_port(mvrp_timer_leave_cb, &tv);
 
-        for_each_port(mvrp_timer_leaveAll_cb, &tv);
+        for_each_port(mvrp_timer_leaveAll_leave_cb, &tv);
+
+        for_each_port(mvrp_timer_leaveAllSend_cb, &tv);
 
         port_vlan_changed();
 
