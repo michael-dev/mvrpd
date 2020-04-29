@@ -55,7 +55,7 @@ Where pattern is matched using fnmatch, e.g. eth\* would match eth0, eth1, etc.
 extra cmdline
 -------------
 
-  * --bridge-dump-netlink: flag to force a bridge dump using netlink to receive full information
+  * --bridge-dump-netlink: dump netlink messages send/received in bridge module
   * --debug
   * --debug-all
   * --debug-bridge

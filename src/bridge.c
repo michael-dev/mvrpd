@@ -189,6 +189,7 @@ obj_input_newlink(struct rtnl_link *link, struct nl_msg *msg, int fromDump)
 	}
 
 	struct vlan_arr *vlan = vlan_alloc("br-newlink");
+	uint16_t vid_begin = 0;
 
 	if (a_af_spec) {
 		eprintf(DEBUG_BRIDGE, "got IFLA_AF_SPEC type %d len %d, expecting type %d, fromDump %d", (int) nla_type(a_af_spec), (int) nla_len(a_af_spec), (int) IFLA_AF_SPEC, fromDump);
@@ -205,13 +206,20 @@ obj_input_newlink(struct rtnl_link *link, struct nl_msg *msg, int fromDump)
 			struct bridge_vlan_info *vinfo = nla_data(attr);
 			if (!vinfo->vid || vinfo->vid >= VLAN_VID_MASK)
 				continue;
-			/* we do not care for BRIDGE_VLAN_INFO_RANGE_BEGIN as we did not ask for compressed VLAN information */
-			if (vinfo->flags & (BRIDGE_VLAN_INFO_RANGE_BEGIN | BRIDGE_VLAN_INFO_RANGE_END)) {
-				eprintf(DEBUG_ERROR,  "received compress vlan information");
+			if (vinfo->flags & BRIDGE_VLAN_INFO_RANGE_BEGIN) {
+				vid_begin = vinfo->vid;
 				continue;
 			}
-			eprintf(DEBUG_BRIDGE, "found vlan %d on %s(%d)", vinfo->vid, ifname, ifidx);
-			vlan_set(vlan, vinfo->vid);
+			if ((vinfo->flags & BRIDGE_VLAN_INFO_RANGE_END) && vid_begin) {
+				eprintf(DEBUG_BRIDGE, "found vlans %d-%d on %s(%d)", vid_begin, vinfo->vid, ifname, ifidx);
+				for (int vid = vid_begin; vid <= vinfo->vid; vid++) {
+					vlan_set(vlan, vid);
+				}
+				vid_begin = 0;
+			} else {
+				eprintf(DEBUG_BRIDGE, "found vlan %d on %s(%d)", vinfo->vid, ifname, ifidx);
+				vlan_set(vlan, vinfo->vid);
+			}
 		}
 	} else {
 		eprintf(DEBUG_BRIDGE, "bridge received no VLAN information");
@@ -316,7 +324,7 @@ array_append(struct my_array *arr, char* ifname)
 		exit(1);
 	}
 
-	tmp[arr->num] = calloc(strlen(ifname)+1, sizeof(char));
+	tmp[arr->num] = calloc(strnlen(ifname,IFNAMSIZ-1)+1, sizeof(char));
 	if (!tmp[arr->num]) {
 		eprintf(DEBUG_ERROR, "%s:%d %s error parsing command line", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		exit(1);
