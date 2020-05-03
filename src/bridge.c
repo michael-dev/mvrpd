@@ -160,13 +160,18 @@ static void
 obj_input_newlink(struct rtnl_link *link, struct nl_msg *msg, int fromDump)
 {
 	const int ifidx = rtnl_link_get_ifindex(link);
+	const char *ifname = rtnl_link_get_name(link);
+
+	if (bridgeIfIdx == -1 && strncmp(ifname, bridge, IFNAMSIZ) == 0) {
+		bridgeIfIdx = ifidx;
+		eprintf(DEBUG_VERBOSE, "bridge newly created %s(%d)", ifname, ifidx);
+	}
+
 	if (rtnl_link_get_master(link) != bridgeIfIdx &&
 	   ifidx != bridgeIfIdx) {
 		port_del(ifidx);
 		return;
 	}
-
-	const char *ifname = rtnl_link_get_name(link);
 
 	int type = classify_ifname(ifname);
 
@@ -249,7 +254,9 @@ obj_input_dellink(struct rtnl_link *link, struct nl_msg *msg)
 	const int ifidx = rtnl_link_get_ifindex(link);
 	if (ifidx == bridgeIfIdx) {
 		eprintf(DEBUG_ERROR, "my bridge %s removed", rtnl_link_get_name(link));
-		exit(254);
+		bridgeIfIdx = -1;
+		port_del_all();
+		return;
 	}
 	port_del(ifidx);
 }
@@ -395,8 +402,6 @@ bridge_start_listen()
 static void
 bridge_dump_init()
 {
-	assert(bridgeIfIdx);
-
 	assert(nf_sock_dump == NULL);
 	nf_sock_dump = nl_socket_alloc();
 	if (!nf_sock_dump) {
@@ -510,7 +515,7 @@ bridge_start(void *ctx)
 
 	if (!bridgeIfIdx) {
 		eprintf(DEBUG_ERROR, "bridge does not exist");
-		exit(254);
+		bridgeIfIdx = -1;
 	}
 
 	/* connect to netlink route to get notified of new bridge ports */
@@ -519,7 +524,8 @@ bridge_start(void *ctx)
 	/* connect to netlink route to dump all known bridge ports */
 	bridge_dump_init();
 	//bridge_dump_links(bridgeIfIdx);
-	bridge_dump_links();
+	if (bridgeIfIdx != -1)
+		bridge_dump_links();
 
 	/* socket or vlan_add or vlan_del */
 	bridge_vlan_init();

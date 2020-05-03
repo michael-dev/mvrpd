@@ -453,6 +453,21 @@ void port_vlan_changed()
 	cb_add_timer(0, 0, NULL, port_recompute_timer);
 }
 
+static void _port_free(struct if_entry *entry)
+{
+	if (entry->type == IF_MVRP)
+		/* uplink aka mvrp */
+		deconf_uplink(entry);
+
+	vlan_free(entry->vlan_state);
+
+	vlan_free(entry->vlan_to_add_last_print);
+
+	memset(entry, 0, sizeof(*entry));
+
+	free(entry);
+}
+
 void port_del(int ifidx)
 {
 	struct if_entry *prev;
@@ -464,15 +479,18 @@ void port_del(int ifidx)
 	else
 		ifHead = entry->next;
 
-	if (entry->type == IF_MVRP)
-		/* uplink aka mvrp */
-		deconf_uplink(entry);
+	_port_free(entry);
+}
 
-	vlan_free(entry->vlan_state);
-
-	vlan_free(entry->vlan_to_add_last_print);
-
-	free(entry);
+void port_del_all()
+{
+	struct if_entry* entry = ifHead;
+	while (entry) {
+		struct if_entry* next = entry->next;
+		_port_free(entry);
+		entry = next;
+	}
+	ifHead = NULL;
 }
 
 void port_add(int type, int ifidx, const char *ifname, int ptp, struct vlan_arr *vlan, const char *mac)

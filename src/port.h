@@ -85,6 +85,7 @@ struct if_entry
 
 void port_add(int type, int ifidx, const char *ifname, int ptp, struct vlan_arr *vlan, const char *mac);
 void port_del(int ifidx);
+void port_del_all();
 void port_vlan_changed();
 struct if_entry *port_get_by_ifidx(int ifidx);
 void for_each_port(void (*cb) (struct if_entry *port, void *ctx), void *ctx);
