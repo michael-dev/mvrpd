@@ -1,3 +1,9 @@
+mvrpd-fem (0.10) unstable; urgency=medium
+
+  * increase buffer size
+
+ -- Michael Braun <michael-dev@fami-braun.de>  Sun, 28 Feb 2021 16:19:11 +0100
+
 mvrpd-fem (0.9) unstable; urgency=medium
 
   * rebuild

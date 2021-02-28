@@ -139,6 +139,7 @@ static void nflog_start_listen(void *ctx) {
 	struct nl_sock *nf_sock_nflog;
 	struct nfnl_log *log;
 	int nffd;
+	int rcvbuf;
 
 	eprintf(DEBUG_NFLOG, "listen to NFLOG packets for group %d", groupId);
 
@@ -179,6 +180,12 @@ static void nflog_start_listen(void *ctx) {
 		exit(254);
 	}
 	eprintf(DEBUG_NFLOG, "nflog socket %d", nffd);
+
+	rcvbuf = 1024 * 1024;
+	if (setsockopt(nffd, SOL_SOCKET, SO_RCVBUFFORCE,
+	               &rcvbuf, sizeof rcvbuf)) {
+		eprintf(DEBUG_ERROR, "nflog socket %d cannot set buffer size to %d", nffd, rcvbuf);
+	}
 
 	cb_add_handle(nffd, nf_sock_nflog, nflog_receive);
 }
