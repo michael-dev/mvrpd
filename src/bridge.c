@@ -448,15 +448,19 @@ bridge_dump_links()
 	 * getting vlan information is only supported for AF_BRIDGE w NLM_F_DUMP RTM_GETLINK requests.
 	 * All others do not have it.
 	 * Sadly, AF_BRIGE+NLM_F_DUMP->kernel:rtnl_bridge_getlink does not allow to filter for master device or ifidx.
+	 * If it could, w'd use: 
+	 *  1. msg.ifi_index = ifidx;
+	 *  2. nlmsg = nlmsg_alloc_simple(RTM_GETLINK, NLM_F_REQUEST | (ifidx ? 0 : NLM_F_DUMP));
+	 *  3. if (!ifidx &&
+	 *         nla_put_u32(nlmsg, IFLA_MASTER, bridgeIfIdx) < 0) ...
+	}
 	 */
 	struct ifinfomsg msg = { 0 };
 	struct nl_msg *nlmsg = NULL;
 
 	msg.ifi_family = AF_BRIDGE;
-	//msg.ifi_index = ifidx;	
 
 	nlmsg = nlmsg_alloc_simple(RTM_GETLINK, NLM_F_REQUEST | NLM_F_DUMP);
-	//nlmsg = nlmsg_alloc_simple(RTM_GETLINK, NLM_F_REQUEST | (ifidx ? 0 : NLM_F_DUMP));
 	if (!nlmsg) {
 		eprintf(DEBUG_ERROR, "out of memory");
 		exit(254);
@@ -465,13 +469,6 @@ bridge_dump_links()
 		eprintf(DEBUG_ERROR, "out of memory");
 		exit(254);
 	}
-	/*
-	if (!ifidx &&
-	    nla_put_u32(nlmsg, IFLA_MASTER, bridgeIfIdx) < 0) {
-		eprintf(DEBUG_ERROR, "out of memory");
-		exit(254);
-	}
-	*/
 	if (nla_put_u32(nlmsg, IFLA_EXT_MASK, RTEXT_FILTER_BRVLAN) < 0) {
 		eprintf(DEBUG_ERROR, "out of memory");
 		exit(254);
@@ -485,7 +482,6 @@ bridge_dump_links()
 		if (ofd && dumpNetlink) {
 			nl_msg_dump(nlmsg, ofd);
 			eprintf(DEBUG_BRIDGE,  "send message: %s", buf);
-			//nl_msg_dump(nlmsg, stderr);
 		} else {
 			eprintf(DEBUG_BRIDGE,  "send message");
 		}
@@ -523,8 +519,8 @@ bridge_start(void *ctx)
 
 	/* connect to netlink route to dump all known bridge ports */
 	bridge_dump_init();
-	//bridge_dump_links(bridgeIfIdx);
 	if (bridgeIfIdx != -1)
+		/* cannot pass bridgeIfIdx for filtering as not supported by kernel */
 		bridge_dump_links();
 
 	/* socket or vlan_add or vlan_del */
