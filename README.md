@@ -4,10 +4,6 @@ Travis CI:
 Coverity Scan:
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/19020/badge.svg)](https://scan.coverity.com/projects/19020)
 
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/michael-dev/mvrpd.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/michael-dev/mvrpd/alerts/)
-
-[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/michael-dev/mvrpd.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/michael-dev/mvrpd/context:cpp)
-
 mvrpd
 =====
 
