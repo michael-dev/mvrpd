@@ -150,25 +150,27 @@ void event_runloop() {
 	while (1) {
 		FD_ZERO(&rfds);
 		maxfd = -1;
-		struct handle_cb_list_entry *entry = handle_cb_list, *prev =  NULL;
-		while (entry) {
-			if (!entry->delete) {
-				FD_SET(entry->h, &rfds);
-				if (maxfd < entry->h) {
-					maxfd = entry->h;
-				}
-				prev = entry;
-				entry = prev->next;
-			} else {
-				if (prev)
-					prev->next = entry->next;
-				else
-					handle_cb_list = entry->next;
-				free(entry);
-				if (prev) 
+		{
+			struct handle_cb_list_entry *entry = handle_cb_list, *prev =  NULL;
+			while (entry) {
+				if (!entry->delete) {
+					FD_SET(entry->h, &rfds);
+					if (maxfd < entry->h) {
+						maxfd = entry->h;
+					}
+					prev = entry;
 					entry = prev->next;
-				else
-					entry = handle_cb_list;
+				} else {
+					if (prev)
+						prev->next = entry->next;
+					else
+						handle_cb_list = entry->next;
+					free(entry);
+					if (prev) 
+						entry = prev->next;
+					else
+						entry = handle_cb_list;
+				}
 			}
 		}
 
