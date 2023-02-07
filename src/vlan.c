@@ -62,7 +62,7 @@ vlan_offset(struct vlan_arr *arr, uint16_t metaidx)
 static inline uint16_t
 vlan_start_vid(struct vlan_arr *arr, uint16_t metaidx)
 {
-	return (metaidx < arr->nummeta) ? arr->meta[metaidx].start * 16 : 4096;
+	return (metaidx < arr->nummeta) ? arr->meta[metaidx].start * 16 : (VLAN_MAX + 32);
 }
 
 static inline uint16_t
@@ -232,6 +232,7 @@ int
 vlan_set(struct vlan_arr *arr, uint16_t vid)
 {
 	eprintf(DEBUG_GENERAL, "%s(%p) set %hu", arr->name, arr, vid);
+	assert(vid < VLAN_MAX);
 
 	uint16_t metaidx = vlan_find_or_add_room(arr, vid);
 	assert(vid >= vlan_start_vid(arr, metaidx));
@@ -285,6 +286,8 @@ int
 vlan_unset(struct vlan_arr *arr, uint16_t vid)
 {
 	eprintf(DEBUG_GENERAL, "%s(%p) unset %hu", arr->name, arr, vid);
+	assert(vid < VLAN_MAX);
+
 	uint16_t metaidx;
 
 	if (vlan_find(arr, vid, &metaidx) == 0)

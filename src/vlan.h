@@ -24,6 +24,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define VLAN_MAX 4096
+
 struct vlan_arr;
 
 int vlan_set(struct vlan_arr *arr, uint16_t vid); // returns old mask
