@@ -15,7 +15,7 @@ overview
 naive approach: 
   * Given a tree of network devices like an ethernet spanning tree.
   * The information of any device that is interested in a VLAN is then propagated along all edges.
-  * Any switch that has two or more ports that are interested in the same VLAN reports this information back to those ports interested in these VLANs and adds the VLAN to that port.
+  * Any switch that has two or more ports that are interested in the same VLAN adds the VLAN to these ports.
 
 mvrp approach:
   * The switch records which ports are interested in a VLAN, either because they declared interest for a VLAN using MVRP or because it is configured manually.
