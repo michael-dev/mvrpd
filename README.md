@@ -30,7 +30,7 @@ Additionally, it listens on all dynamic (MVRP-enabled) ports for other devices o
 
 If a bridge is interested in a VLAN, it registers for that VLAN on all dynamic ports. If a port is the only one interested in a VLAN, it is not registering for that VLAN (no loopback).
 
-If a bridge as two or more ports that are interested in a VLAN, it will configure that VLAN on all interested ports.
+If a bridge has two or more ports that are interested in a VLAN, it will configure that VLAN on all interested ports.
 
 Optionally, some VLANs may be skipped.
 
