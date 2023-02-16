@@ -147,15 +147,13 @@ ether_listen(int if_index, const char *if_name, const char *if_mac, int hwproto,
 	eprintf(DEBUG_ETHER,  "listening for packets on %s(%d) type %04x mcast %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx", if_name, if_index, hwproto,
 			mcast_mac[0],mcast_mac[1],mcast_mac[2],mcast_mac[3],mcast_mac[4],mcast_mac[5]);
 
-	/* filtering for hwproto did not work for me, ETH_P_ALL works but will result in a load problem as tagged packets are received as well */
-	//fd = socket (PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+	/* filtering for hwproto did not work for me, hwptoto=ETH_P_ALL works but will result in a load problem as tagged packets are received as well */
 	fd = socket (PF_PACKET, SOCK_RAW, htons(hwproto));
   	if (fd < 0)
 		goto errout;
 	memset(&addr, 0, sizeof(addr));
 	addr.sll_ifindex = if_index;
 	addr.sll_family = AF_PACKET;
-	//addr.sll_protocol = htons(ETH_P_ALL);
 	addr.sll_protocol = htons(hwproto);
 
 	err = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
