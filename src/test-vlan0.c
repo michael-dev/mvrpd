@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 
 void dump_vlan(struct vlan_arr *arr) {
 	char tmp[4096];
@@ -180,6 +181,36 @@ void test9() {
 	vlan_free(arr0);
 }
 
+void test10() {
+	{
+		struct vlan_arr *arr;
+		char tmp[4096];
+
+		arr = vlan_alloc("test10a");
+		vlan_set(arr, 4095);
+
+		dump_vlan(arr);
+		vlan_dump(arr, tmp, sizeof(tmp));
+		assert(strncmp(tmp, "4095", sizeof(tmp)) == 0);
+
+		vlan_free(arr);
+	}
+
+	{
+		struct vlan_arr *arr;
+		char tmp[4096];
+		arr = vlan_alloc("test10b");
+		vlan_set(arr, 1);
+		vlan_set(arr, 4095);
+
+		dump_vlan(arr);
+		vlan_dump(arr, tmp, sizeof(tmp));
+		assert(strncmp(tmp, "1,4095", sizeof(tmp)) == 0);
+
+		vlan_free(arr);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	parse_cmdline(argc, argv);
@@ -189,15 +220,28 @@ int main(int argc, char *argv[])
 	argv2[1] = "--debug-all";
 	parse_cmdline(2, argv2);
 
+	printf("##### TEST: 0 #####\n");
 	test0();
+	printf("##### TEST: 1 #####\n");
 	test1();
+	printf("##### TEST: 2 #####\n");
 	test2();
+	printf("##### TEST: 3 #####\n");
 	test3();
+	printf("##### TEST: 4 #####\n");
 	test4();
+	printf("##### TEST: 5 #####\n");
 	test5();
+	printf("##### TEST: 6 #####\n");
 	test6();
+	printf("##### TEST: 7 #####\n");
 	test7();
+	printf("##### TEST: 8 #####\n");
 	test8();
+	printf("##### TEST: 9 #####\n");
 	test9();
+	printf("##### TEST: 10 #####\n");
+	test10();
+	printf("##### TEST: END #####\n");
 }
 
