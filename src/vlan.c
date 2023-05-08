@@ -154,11 +154,13 @@ vlan_find_or_add_room(struct vlan_arr *arr, uint16_t vid)
 		merge += 1;
 		extrabitmap += 1;
 	}
-	if (vlan_start_vid(arr, succ) / 16 <= vid / 16 + 2) {
+	if (arr->nummeta > succ &&
+	    vlan_start_vid(arr, succ) / 16 <= vid / 16 + 2) {
 		merge += 2;
 		extrabitmap += 1;
 	}
-	if (vlan_start_vid(arr, succ) / 16 == vid / 16 + 2)
+	if (arr->nummeta > succ &&
+	    vlan_start_vid(arr, succ) / 16 == vid / 16 + 2)
 		extrabitmap += 1;
 
 	if (merge == 0)
