@@ -7,7 +7,7 @@ Coverity Scan:
 mvrpd
 =====
 
-This daemon implements MVRP (supersedes GRVP) for linux bridges. It aims at automatically configuring vlans on links, especially inter-bride/inter-switch.
+This daemon implements MVRP (supersedes GRVP) for linux bridges. It aims at automatically configuring vlans on links, especially inter-bridge/inter-switch.
 
 overview
 --------
