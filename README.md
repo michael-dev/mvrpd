@@ -42,7 +42,7 @@ cmdline
   * --bridge <bridgename> (exactly once)
   * --uplinkif <pattern> : matches interfaces that are configured using MVRP (maybe repeated, takes precedence over --epif)
   * --epif <pattern> : matches interfaces that are statically configured (maybe repeated, ususally includes the bridge itself)
-  * --ptpif <pattern> : matches interfaces. If those are configured by MVRP, it is assumed the at most one MVRP-enabled applicant (peer) is connected to this bridge port (e.g. another MVRP enabled bridge)
+  * --ptpif <pattern> : matches interfaces. If those are configured by MVRP, it is assumed that at most one MVRP-enabled applicant (peer) is connected to this bridge port (e.g. another MVRP enabled bridge)
   * --ignore-vlan <vlan-id>: ignore this vlan id
   * --restrict-to-ep: only declare (announce) and thus register (configure) VLANs that are already added to the (statically configured) ports
 
