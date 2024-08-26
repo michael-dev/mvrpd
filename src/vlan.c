@@ -220,8 +220,8 @@ vlan_find_or_add_room(struct vlan_arr *arr, uint16_t vid)
 		arr->nummeta++;
 		arr->meta = realloc(arr->meta, arr->nummeta * sizeof(*arr->meta));
 		assert(arr->meta);
-		for (uint16_t i = succ; i < arr->nummeta - 1; i++)
-			arr->meta[i+1] = arr->meta[i];
+		for (uint16_t i = arr->nummeta - 1; i > succ; i--)
+			arr->meta[i] = arr->meta[i - 1];
 		arr->meta[succ].offset = startoffset;
 		arr->meta[succ].start = vid / 16;
 		return succ;
