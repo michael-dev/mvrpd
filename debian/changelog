@@ -1,3 +1,9 @@
+mvrpd-fem (0.12) unstable; urgency=medium
+
+  * fix handling inserting new meta
+
+ -- Michael Braun <michael-dev@fami-braun.de>  Mon, 26 Aug 2024 14:16:06 +0200
+
 mvrpd-fem (0.11) unstabled; urgency=medium
 
   * fix handling big VLAN id
